@@ -1,0 +1,7 @@
+
+Po drodze powstaną trzy robocze artefakty w tym samym folderze:
+
+
+context/map/artifact-1-territory.md
+context/map/artifact-2-structure.md
+context/map/artifact-3-contributors.md

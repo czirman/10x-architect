@@ -1,0 +1,5 @@
+Gdy prosisz agenta o przeczytanie całego repo, mieszasz niestety trzy różne zadania:
+
+- przeszukiwanie struktury projektu (tool calle),
+- wybranie obszarów ważnych dla architektury (reasoning + tool calle),
+- głębokie zrozumienie konkretnego zachowania (reasoning).
