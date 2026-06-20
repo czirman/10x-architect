@@ -1,0 +1,32 @@
+
+Po drodze powstaną trzy robocze artefakty w tym samym folderze:
+
+
+context/map/artifact-1-territory.md
+context/map/artifact-2-structure.md
+context/map/artifact-3-contributors.md
+
+
+Promt
+give me 5 scenarios of exploring git history, that leverage AI Agent capabilities,that no other GUI provides
+wynik:
+
+- "When did this function's behavior actually change — ignoring renames and reformatting?"
+
+- "Find the commit that introduced this bug, by what the code does, not by bisecting against a test"
+
+-"Reconstruct why we abandoned this approach"
+
+- Audit every place we ever handled auth tokens, across their entire lifetime"
+
+-"Explain this PR's diff in terms of the history it's reacting to"
+
+
+Prompt
+Give me top three ideas fo exploration legacy code with lib dependency-cruiser. I Want understand reveland and most sensitive for change areas, and also potential technological debt.
+What kind of raports i can generate?
+
+
+1. Find the "most change-sensitive" hubs via fan-in + instability metrics
+2. Surface technical debt: circular deps + orphans + layer violations
+3. Reverse-engineer the real architecture with a folder-level graph
