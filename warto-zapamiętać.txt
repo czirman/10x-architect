@@ -1,0 +1,14 @@
+Gdy prosisz agenta o przeczytanie całego repo, mieszasz niestety trzy różne zadania:
+
+- przeszukiwanie struktury projektu (tool calle),
+- wybranie obszarów ważnych dla architektury (reasoning + tool calle),
+- głębokie zrozumienie konkretnego zachowania (reasoning).
+
+
+Żeby zorientować się w dużym legacy, potrzebujesz trzech różnych pytań i trzech różnych źródeł sygnałów, które razem budują jedną Mapę projektu.
+
+ - Terytorium — gdzie naprawdę odbywa się praca, które obszary są aktywne, które zamrożone, które zmieniają się razem i gdzie częsta praca może zwiększać ryzyko przypadkowej regresji.
+
+ - Struktura — entry pointy, warstwy systemu, kierunek importów, powiązania, kontrakty i miejsca, których nie widać z samego drzewa katalogów.
+
+- Kontekst kontrybutorów — kto pracował przy trudnych edge case'ach, protokołach, migracjach, uprawnieniach albo awaryjnych poprawkach.
