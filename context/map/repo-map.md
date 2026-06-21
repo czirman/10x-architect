@@ -1,3 +1,6 @@
+#Research Objective:
+Analysis of the configuration surface stability starting from the entry file `server/public/model/config.go`, as the activity map identified it as a primary hub modified by all developers during the deployment of almost every new feature.
+
 # Repo Map — Mattermost (onboarding)
 
 > A 15-minute orientation for a new developer. Synthesizes three companion artifacts:
@@ -29,7 +32,6 @@ flowchart TB
     admin["admin_console<br/>top-active, 58% in SCC"]
     comps["components (other)"]
     actions["actions + utils.tsx<br/>SCC orchestrators"]
-    redux["mattermost-redux<br/>separable, 0 in SCC"]
     client["platform/client"]
     types["platform/types<br/>pure foundation"]
   end
@@ -127,7 +129,7 @@ Solid = downward import/dependency; dotted = cycle / cross-cut / weak tie. `mode
 Foundation → contract → hotspot → dangerous hub (read, don't edit).
 
 1. `webapp/platform/types/src/config.ts` — pure foundation, zero fan-out; safest place to learn the type vocabulary.
-2. `server/public/model/config.go` — #1 most-modified file; the backend contract/config schema everything depends on.
+2. `` — #1 most-modified file; the backend contract/config schema everything depends on.
 3. `server/channels/store/store.go` — #2 most-modified; the data-access contract for the backend spine.
 4. `webapp/platform/client/src/client4.ts` — the API client; bounded reach (cascade ~54), mockable, shows how the frontend talks to the server.
 5. `server/channels/app/post.go` — a real feature hotspot in the backend hub; representative domain logic.
