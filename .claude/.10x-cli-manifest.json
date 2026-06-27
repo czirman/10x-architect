@@ -2,7 +2,7 @@
   "package": "@przeprogramowani/10x-cli",
   "version": "1.9.0",
   "manifestVersion": 3,
-  "lastApplied": "2026-06-21T14:39:09.296Z",
+  "lastApplied": "2026-06-27T09:54:46.642Z",
   "lessonId": "m4l3",
   "course": "10xdevs3",
   "tool": "claude-code",
@@ -70,7 +70,7 @@
       "configs": []
     },
     "m4l3": {
-      "appliedAt": "2026-06-21T14:39:09.295Z",
+      "appliedAt": "2026-06-27T09:54:46.641Z",
       "skills": {},
       "prompts": [
         "m4l3-1-research-with-map.md",
