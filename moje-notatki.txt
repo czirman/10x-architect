@@ -1,7 +1,5 @@
-
+### Lekcja 4l2
 Po drodze powstaną trzy robocze artefakty w tym samym folderze:
-
-
 context/map/artifact-1-territory.md
 context/map/artifact-2-structure.md
 context/map/artifact-3-contributors.md
@@ -30,3 +28,31 @@ What kind of raports i can generate?
 1. Find the "most change-sensitive" hubs via fan-in + instability metrics
 2. Surface technical debt: circular deps + orphans + layer violations
 3. Reverse-engineer the real architecture with a folder-level graph
+
+
+
+### Lekcja 4l2
+Co robić, po odstawieniu zadania
+Z roadmapy najważniejsze są trzy rzeczy: Strefa ryzyka, Pierwszy dzień, Ograniczenia
+Naisali że wezmę zel ze strefy ryzyka
+Bedziemy w tej lekcji używać skilli
+- init. mam już strukture projektum nie wiem czy potrzeba. Ale z drugiej strony mogę go uruchomić ponownie agent mnie naprostuje. nizej
+- research - ale w celu zbadania ryzyka
+
+Te dwa do przygotwania
+/10x-init
+/10x-new post-flow-analysis Analiza przepływu danych w obszarze wiadomości.
+
+Ryzyko
+| 4 — config surface | **Jesse Hallam** (config/contract authority) | **Pablo Vélez** (`admin_definition` UI binding) |
+
+Day one, endpoint 
+2. `server/public/model/config.go` — #1 most-modified file; the backend contract/config schema everything depends on.
+
+
+- **Methodology:**
+  - Activity = git change-record counts with noise filtered (i18n bundles, lockfiles, snapshots, mocks, generated layers, `*.pb.go`, build/CI). Frequency ≠ importance; hubs like `config.go` rank high because
+  
+  
+  
+  https://www.youtube.com/watch?v=rqwgWyLA05k - imba o bandere
