@@ -1,7 +1,7 @@
 ---
 date: 2026-06-27T00:00:00Z
 researcher: czirman (service.mak@proton.me)
-git_commit: b6c0fa5652d59f1ab4866fc9374f0e06391b001a
+git_commit: fe3886d7b7b39ade2c09fcbf9fbeb7cf84285151
 branch: module-4-lesson-3
 repository: shaping-claude (analysis target: nested mattermost repo @ ee04f28e873d990a1719cfc13809ad8aa7cc6554)
 topic: "Configuration surface flow — e2e trace, test gaps, blast radius"
@@ -9,6 +9,7 @@ tags: [research, codebase, config, mattermost, config-surface, blast-radius, tes
 status: complete
 last_updated: 2026-06-27
 last_updated_by: czirman
+last_updated_note: "ast-grep structural verification pass — confirmed/refined/refuted all AST-checkable claims; corrected item #1 (local handlers are mostly covered via th.LocalClient; only localGetClientConfig is untested) and admin_definition import count (92, not 87). See `## Structural verification (ast-grep)`. Frontmatter git_commit refreshed b6c0fa5 -> fe3886d."
 ---
 
 # Research: Configuration Surface Flow (Mattermost)
@@ -38,10 +39,10 @@ Describe only the **current state** of the repository. Report must contain two e
 
 The configuration surface is a **5-layer pipe** — `api4` (REST) → `app` (facade) → `platform` (`PlatformService`, owns the store + listeners) → `config.Store` (caches `*model.Config`, applies/strips env overrides, emits to listeners) → `BackingStore {File | Database | Memory}` (the path forks here). Reads are served entirely from an in-memory cache (no backend hit); writes flow down to a backend and then **fan out synchronously through an emitter** to runtime subscribers (client-config regeneration, a WebSocket `config_changed` broadcast, logger reconfiguration, search reconfiguration), plus a cluster (HA) fan-out to peer nodes.
 
-Two findings dominate the technical-debt picture:
+One finding dominates the technical-debt picture, plus a significant correction the ast-grep pass made to the prior report's second finding:
 
 1. **The config surface is THE backend↔frontend seam.** The repo map (Risk Zone 4) called the cross-stack ripple an *inference, not a measured co-change pair.* Git history **refutes that caveat**: `config.go ↔ config.ts` co-change **34** times, `config.go ↔ admin_definition.tsx` **24**, in the window. It is measured fact and should be upgraded `[inference] → [git]`.
-2. **The privileged local-mode admin path (`config_local.go`) is essentially untested** — `localGetConfig`/`localUpdateConfig`/`localPatchConfig`/`localGetClientConfig` have zero handler-level tests, despite bypassing session permission checks (the `mmctl`/socket path).
+2. **The privileged local-mode admin path (`config_local.go`) is *mostly* covered, with one real gap.** ⚠️ *Corrected by the ast-grep pass — the original claim of "essentially untested" was wrong.* `config_test.go` exercises `localGetConfig` (3×), `localUpdateConfig` (8×), `localPatchConfig` (3×) and `localMigrateConfig` (1×) through `th.LocalClient` (which talks to the local-mode socket and therefore routes to the `APILocal(...)` handlers — `api4/apitestlib.go:237`). The genuine gap is **`localGetClientConfig` only** — zero test reach. The earlier conclusion came from grepping the handler *identifiers*, which never appear in tests because the handlers are invoked via routing, not by name. See item #1 in Technical debt and `## Structural verification (ast-grep)`.
 
 There are **two nearly-disjoint blast radii**: a **config-field change** (big, cross-stack, git-measured) and a **config-store-interface change** (small, static-only, git-empty). They barely overlap because the store seam is **field-agnostic** — it moves the whole `*model.Config` as an opaque JSON blob. Consequently, **a config-field add needs no migration**.
 
@@ -191,8 +192,21 @@ sequenceDiagram
 
 Ranked, most → least significant. Each item tags evidence vs. inference.
 
-### 1. Local-mode admin handlers are essentially untested `[evidence]`
-`config_local.go` — `localGetConfig` (:27), `localUpdateConfig` (:52), `localPatchConfig` (:99), `localGetClientConfig` (:191) have **no handler-level tests** (grep returns only source + route registration). Only `localMigrateConfig` (:160) has a happy-path test (`config_test.go:1034`). This is the privileged `mmctl`/socket path that **bypasses session permission checks** — a security-sensitive surface with zero direct verification. The "local mode" subtests on `updateConfig`/`patchConfig` exercise the *shared* handler's bypass logic, not these distinct entry points. **Inference:** highest-risk gap because of the privilege model.
+> **Re-ranking note (ast-grep pass).** Item #1 was the original report's top risk but has been **downgraded** — the ast-grep verification showed the local handlers are exercised by tests (only `localGetClientConfig` is genuinely untested). It is kept at position #1 for traceability with the original report, but its true significance is now **low**; treat item #2 (database backend tested on Postgres only) as the effective top gap.
+
+### 1. Local-mode admin handlers — one untested handler, not four `[evidence — CORRECTED]`
+⚠️ **This item was substantially overstated in the original report and is corrected by the ast-grep pass.** Original claim: all four local handlers "essentially untested." Reality:
+
+`th.LocalClient` is built against the local-mode socket (`th.CreateLocalClient(...LocalModeSocketLocation)` — `api4/apitestlib.go:237`), so its calls route to the `APILocal(...)` handlers registered in `config_local.go:19-24`. `config_test.go` makes these calls:
+- `localGetConfig` (:27) ← `LocalClient.GetConfig` **3×** (e.g. `config_test.go:63, 545, 769`) — **reached by tests**.
+- `localUpdateConfig` (:52) ← `LocalClient.UpdateConfig` **8×** (`:216, 222, 250, 256, 331, 337, 552, 774`) — **reached by tests**.
+- `localPatchConfig` (:99) ← `LocalClient.PatchConfig` **3×** (`:770, 1015, 1022`) — **reached by tests**.
+- `localMigrateConfig` (:160) ← `LocalClient.MigrateConfig` **1×** (`TestMigrateConfig`, `config_test.go:1034/1063`) — **reached by tests**.
+- **`localGetClientConfig` (:191) ← zero test reach — the one genuine gap.**
+
+Why the original grep missed it: grepping the handler *identifiers* (`localUpdateConfig`, …) returns **0** in `*_test.go` (re-confirmed: ast-grep=0 **and** grep=0) — but that is expected, because the handlers are reached through HTTP routing, not by direct call. The original report drew "untested" from that zero.
+
+**Net correction:** the literal "zero handler-level tests" is refuted — these handlers are *exercised* by tests (e.g. `:552` asserts on the returned config). The residual gap is `localGetClientConfig` (the local client-config read) — zero reach. **Caveat (preserves the original author's intent):** "reached" counts call sites, not assertion depth — some calls discard returns (e.g. `:774` looks like a state-restore, not an assertion). So a *narrower* depth-of-coverage question may remain: whether the **permission-bypass branch specifically** (the security concern that motivated the original item) is asserted, versus merely traversed. That is a smaller, sharper gap than "essentially untested," and no longer the report's top risk.
 
 ### 2. Database backend tested on Postgres only `[evidence]`
 `server/config/main_test.go:48` hard-fails on any non-Postgres driver; `database_test.go` hardcodes Postgres assertions (e.g. `:1058`). The **MySQL `DatabaseStore`** persist/load/DSN-parse path is unexercised in this environment. **Unknown:** behavior on MySQL is not determinable here.
@@ -231,7 +245,7 @@ Grounded in a textbook single-commit field-add: **`471fd8d1`** (added `FileSetti
 | `server/public/model/config.go` | field decl + `SetDefaults` (`:1811`, `:1908` in `471fd8d1`) | — |
 | `server/public/model/config_test.go` | defaults/validation tests | 32/70 |
 | `webapp/platform/types/src/config.ts` | FE TS type mirror | 34/70 |
-| `webapp/channels/src/components/admin_console/admin_definition.tsx` | admin-console UI binding (`[import]` config-driven, 87 imports) | 24/70 |
+| `webapp/channels/src/components/admin_console/admin_definition.tsx` | admin-console UI binding (`[import]` config-driven, **92 import statements** = 91 runtime + 1 `import type`; the repo-map's "87" is a dependency-cruiser edge count, not a statement count — *refined by ast-grep*) | 24/70 |
 | `server/i18n/en.json` | server labels + `IsValid` error strings | 39/70 (top partner) |
 | `webapp/channels/src/i18n/en.json` | FE labels | 33/70 |
 | `e2e-tests/playwright/lib/src/server/default_config.ts` | e2e config snapshot | 31/70 |
@@ -261,12 +275,33 @@ Grounded in a textbook single-commit field-add: **`471fd8d1`** (added `FileSetti
 - **`api4/config.go`** (6, low churn): `config_test.go` 4 · `config_local.go` 4.
 - **`config/store.go`** (3, statistically empty): no partner > 2 — ignore git, use static view.
 
-**Model contract static fan-in (Go grep, `model.Config`):** `app` 77, `api4` 59, `config` 18, `app/platform` 16, `mmctl` 11, `jobs` 10.
+**Model contract static fan-in (`model.Config`):** `app` 77, `api4` 59, `config` 18, `app/platform` 16, `mmctl` 11, `jobs` 10. *(ast-grep pass: confirmed — the metric is **non-recursive file count** = files directly in the dir that reference `model.Config`; mmctl's 11 live in `cmd/mmctl/commands`. At **reference granularity** ast-grep counts far more usage sites — `app` 772, `api4` 1014, `config` 247, `app/platform` 95, `cmd/mmctl/commands` 146, `channels/jobs` 85 — a finer fan-in measure than file count.)*
 
 ### Correction to a second repo-map claim
 The map says e2e tests are "committed in isolation (best partner 54)." **For the config surface specifically that is false** — `e2e-tests/playwright/lib/src/server/default_config.ts` is the **#1** co-change partner of `config.ts` (42) and #5 of `config.go` (31). Config e2e snapshots are tightly coupled, not isolated.
 
 ---
+
+## Structural verification (ast-grep)
+
+Every **structural** claim in this report (call-site / fan-in counts, "only here" single definitions, interface method counts, "always via X", repeated call shapes) was re-checked with `ast-grep` (v0.44.0) against the nested repo @ `ee04f28`. Per the method requirement, **every ast-grep `0` was cross-checked with classic `grep`** to distinguish a real absence from a bad pattern. Verdicts: ✅ confirmed · 🔧 refined · ❌ refuted.
+
+| # | Structural claim | ast-grep pattern (lang) | Result | Verdict |
+|---|---|---|---|---|
+| 1 | `SetDefaults`/`IsValid`/`Clone`/`Sanitize` each defined **once** on `*Config` | `func ($R *Config) <name>(…) {…}` (go) | 1 each — `config.go:4276/4340/4226/5316` | ✅ confirmed (lines exact) |
+| 2 | `makeFilterConfigByPermission` defined once | `func makeFilterConfigByPermission($$$) $$$ {…}` (go) | 1 — `api4/config.go:408` | ✅ confirmed |
+| 3 | `model.Config` fan-in: app 77 / api4 59 / config 18 / app·platform 16 / mmctl 11 / jobs 10 | `model.Config` (go), counted per dir | exact match to **non-recursive file count**; mmctl in `cmd/mmctl/commands` | ✅ confirmed (metric clarified) + 🔧 refined to reference-level counts (app 772 / api4 1014 / config 247 / app·platform 95 / mmctl-cmds 146 / jobs 85) |
+| 4 | `BackingStore` interface = **8 methods** (Set/Load/GetFile/SetFile/HasFile/RemoveFile/String/Close) | read of `config/store.go:42-68` | exactly 8, names match | ✅ confirmed |
+| 5 | `BackingStore` has **3 implementers** (File/Database/Memory) | `func ($R $T) Load() ([]byte, error) {…}` (go) | 3 — `file.go:129`, `database.go:223`, `memory.go:72` | ✅ confirmed |
+| 6 | `config.Listener = func(oldCfg, newCfg *model.Config)` | `type Listener func(oldCfg, newCfg *model.Config)` (go) | 1 — `emitter.go:14` | ✅ confirmed |
+| 7 | `invokeConfigListeners` ranges a `sync.Map` | grep within `emitter.go` | `listeners sync.Map` (:18) ranged at `:35` (`invokeConfigListeners` :34) | ✅ confirmed |
+| 8 | Reads served from cache — `Store.Get()` makes **no backend hit** | body of `func (s *Store) Get()` (go) | 0 `backingStore` refs; returns `s.config` under `RLock` | ✅ confirmed |
+| 9 | Cluster (HA) fan-out via `clusterIFace.ConfigChanged(...)` | grep call-site | `platform/config.go:121` | ✅ confirmed |
+| 10 | `patchConfig` is the **same shape** as `updateConfig` | per-func grep of shared calls (go) | both: `MakeAuditRecord` → `writeFilter` → `IsValid` → `SaveConfig` → `Diff` (`config.go:120` vs `:279`) | ✅ confirmed |
+| 11 | `admin_definition.tsx` "**87 imports**" | `import $$$ from '$_'` (tsx) | **92** statements (91 runtime + 1 `import type`) | 🔧 refined — 87 is a dependency-cruiser edge count, not statement count |
+| 12 | Local handlers `localGetConfig`/`localUpdateConfig`/`localPatchConfig`/`localGetClientConfig` have **zero handler-level tests** | `<handler-name>` identifier in `config_test.go` (go) → 0, **grep-confirmed 0** | identifiers absent, **but** handlers are reached via routing: `LocalClient.GetConfig` 3× / `UpdateConfig` 8× / `PatchConfig` 3× / `MigrateConfig` 1×; only `localGetClientConfig` = 0 | ❌ refuted — see Technical-debt item #1 (only `localGetClientConfig` is genuinely untested) |
+
+**Method note on the zeros (claim 12):** ast-grep returned `0` for every `local*Config` identifier inside `config_test.go`, and `grep -c` confirmed `0` — so the pattern was correct and the absence is real. The absence is just *not evidence of no test coverage*: it reflects that HTTP handlers are wired by route, not called by name. The actual coverage was found by matching the `LocalClient.<Op>` call shapes, which the local-mode socket routes to the `APILocal(...)` handlers (`api4/config_local.go:19-24`, client built at `api4/apitestlib.go:237`). This is the single substantive correction from the ast-grep pass.
 
 ## Evidence / Inference / Unknown (consolidated)
 
@@ -296,7 +331,7 @@ The map says e2e tests are "committed in isolation (best partner 54)." **For the
 ## Code References
 
 - `server/channels/api4/config.go:35-250` — REST handlers (get/update/patch/reload), permission filter `:408`.
-- `server/channels/api4/config_local.go:27-191` — local-mode handlers (untested, item #1).
+- `server/channels/api4/config_local.go:27-191` — local-mode handlers (reached via `th.LocalClient`; only `localGetClientConfig` untested — corrected item #1).
 - `server/channels/app/config.go:31-261` — app facade.
 - `server/channels/app/platform/config.go:40-244` — platform service, client-config cache.
 - `server/channels/app/platform/service.go:468-482` — master config listener (regen + WS + logger).
@@ -322,7 +357,7 @@ The map says e2e tests are "committed in isolation (best partner 54)." **For the
 
 ## Open Questions
 
-1. Should `config_local.go` handlers get dedicated permission-bypass tests (item #1)?
+1. Should `localGetClientConfig` get a dedicated test (the one local handler with zero test reach), and should the permission-*bypass* branch of the already-reached local handlers get explicit assertions rather than just being traversed? (narrowed item #1)
 2. Is the MySQL DatabaseStore path covered by CI elsewhere, or genuinely untested (item #2)?
 3. Should repo-map Risk Zone 4 be updated `[inference] → [git]` with the measured cross-stack counts?
 4. Cluster receive-side `ConfigChanged` apply path — worth a follow-up trace?
