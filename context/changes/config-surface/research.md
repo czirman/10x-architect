@@ -5,11 +5,13 @@ git_commit: fe3886d7b7b39ade2c09fcbf9fbeb7cf84285151
 branch: module-4-lesson-3
 repository: shaping-claude (analysis target: nested mattermost repo @ ee04f28e873d990a1719cfc13809ad8aa7cc6554)
 topic: "Configuration surface flow — e2e trace, test gaps, blast radius"
-tags: [research, codebase, config, mattermost, config-surface, blast-radius, test-coverage]
+tags: [research, codebase, config, mattermost, config-surface, blast-radius, test-coverage, verified]
 status: complete
 last_updated: 2026-07-04
 last_updated_by: czirman
-last_updated_note: "Refactor-feasibility follow-up (2026-07-04): classified every recorded problem as structural-candidate vs not, then ran a 3-lens exploration (current shape / intentionality / migration feasibility, read-only) on the structural candidates. New section `## Follow-up Research 2026-07-04 — Refactor opportunities` appended, ending with a ranked opportunity list. Prior note: ast-grep structural verification pass — corrected item #1 (local handlers mostly covered via th.LocalClient; only localGetClientConfig untested) and admin_definition import count (92, not 87)."
+verification_commit: 42ef2ac
+verification_target: "nested mattermost @ ee04f28 (unchanged from original analysis)"
+last_updated_note: "Structural-claims verification pass (2026-07-04, ast-grep v0.44.0 @ shaping-claude 42ef2ac, target mattermost ee04f28 unchanged): re-ran every structural claim the ranking rests on (method counts, update-vs-patch guard divergence, call-site cardinality, mirror-type pairs); every ast-grep 0 cross-checked with classic grep. New section `## Claim verification (ast-grep)` added. Inline corrections (correct-value-first): mmctl fan-in refs 133 (report: 146) + path server/cmd/mmctl/commands; access: tags 580 (report: 581); EnableEmailBatching UI binding admin_definition.tsx:3303 (report: 3302). Ranking and intentionality verdicts untouched per instruction. Prior note: Refactor-feasibility follow-up (2026-07-04): classified every recorded problem as structural-candidate vs not, then ran a 3-lens exploration (current shape / intentionality / migration feasibility, read-only) on the structural candidates. New section `## Follow-up Research 2026-07-04 — Refactor opportunities` appended, ending with a ranked opportunity list. Prior note: ast-grep structural verification pass — corrected item #1 (local handlers mostly covered via th.LocalClient; only localGetClientConfig untested) and admin_definition import count (92, not 87)."
 ---
 
 # Research: Configuration Surface Flow (Mattermost)
@@ -275,7 +277,7 @@ Grounded in a textbook single-commit field-add: **`471fd8d1`** (added `FileSetti
 - **`api4/config.go`** (6, low churn): `config_test.go` 4 · `config_local.go` 4.
 - **`config/store.go`** (3, statistically empty): no partner > 2 — ignore git, use static view.
 
-**Model contract static fan-in (`model.Config`):** `app` 77, `api4` 59, `config` 18, `app/platform` 16, `mmctl` 11, `jobs` 10. *(ast-grep pass: confirmed — the metric is **non-recursive file count** = files directly in the dir that reference `model.Config`; mmctl's 11 live in `cmd/mmctl/commands`. At **reference granularity** ast-grep counts far more usage sites — `app` 772, `api4` 1014, `config` 247, `app/platform` 95, `cmd/mmctl/commands` 146, `channels/jobs` 85 — a finer fan-in measure than file count.)*
+**Model contract static fan-in (`model.Config`):** `app` 77, `api4` 59, `config` 18, `app/platform` 16, `mmctl` 11, `jobs` 10. *(ast-grep pass: confirmed — the metric is **non-recursive file count** = files directly in the dir that reference `model.Config`; mmctl's 11 live in `server/cmd/mmctl/commands` (report: `cmd/mmctl/commands` — the `server/` prefix was dropped). At **reference granularity** ast-grep counts far more usage sites — `app` 772, `api4` 1014, `config` 247, `app/platform` 95, `server/cmd/mmctl/commands` 133 (report: 146), `channels/jobs` 85 — a finer fan-in measure than file count.)*
 
 ### Correction to a second repo-map claim
 The map says e2e tests are "committed in isolation (best partner 54)." **For the config surface specifically that is false** — `e2e-tests/playwright/lib/src/server/default_config.ts` is the **#1** co-change partner of `config.ts` (42) and #5 of `config.go` (31). Config e2e snapshots are tightly coupled, not isolated.
@@ -290,7 +292,7 @@ Every **structural** claim in this report (call-site / fan-in counts, "only here
 |---|---|---|---|---|
 | 1 | `SetDefaults`/`IsValid`/`Clone`/`Sanitize` each defined **once** on `*Config` | `func ($R *Config) <name>(…) {…}` (go) | 1 each — `config.go:4276/4340/4226/5316` | ✅ confirmed (lines exact) |
 | 2 | `makeFilterConfigByPermission` defined once | `func makeFilterConfigByPermission($$$) $$$ {…}` (go) | 1 — `api4/config.go:408` | ✅ confirmed |
-| 3 | `model.Config` fan-in: app 77 / api4 59 / config 18 / app·platform 16 / mmctl 11 / jobs 10 | `model.Config` (go), counted per dir | exact match to **non-recursive file count**; mmctl in `cmd/mmctl/commands` | ✅ confirmed (metric clarified) + 🔧 refined to reference-level counts (app 772 / api4 1014 / config 247 / app·platform 95 / mmctl-cmds 146 / jobs 85) |
+| 3 | `model.Config` fan-in: app 77 / api4 59 / config 18 / app·platform 16 / mmctl 11 / jobs 10 | `model.Config` (go), counted per dir | exact match to **non-recursive file count**; mmctl in `server/cmd/mmctl/commands` (report: `cmd/mmctl/commands`) | ✅ confirmed (metric clarified) + 🔧 refined to reference-level counts (app 772 / api4 1014 / config 247 / app·platform 95 / mmctl-cmds 133 (report: 146) / jobs 85) |
 | 4 | `BackingStore` interface = **8 methods** (Set/Load/GetFile/SetFile/HasFile/RemoveFile/String/Close) | read of `config/store.go:42-68` | exactly 8, names match | ✅ confirmed |
 | 5 | `BackingStore` has **3 implementers** (File/Database/Memory) | `func ($R $T) Load() ([]byte, error) {…}` (go) | 3 — `file.go:129`, `database.go:223`, `memory.go:72` | ✅ confirmed |
 | 6 | `config.Listener = func(oldCfg, newCfg *model.Config)` | `type Listener func(oldCfg, newCfg *model.Config)` (go) | 1 — `emitter.go:14` | ✅ confirmed |
@@ -302,6 +304,64 @@ Every **structural** claim in this report (call-site / fan-in counts, "only here
 | 12 | Local handlers `localGetConfig`/`localUpdateConfig`/`localPatchConfig`/`localGetClientConfig` have **zero handler-level tests** | `<handler-name>` identifier in `config_test.go` (go) → 0, **grep-confirmed 0** | identifiers absent, **but** handlers are reached via routing: `LocalClient.GetConfig` 3× / `UpdateConfig` 8× / `PatchConfig` 3× / `MigrateConfig` 1×; only `localGetClientConfig` = 0 | ❌ refuted — see Technical-debt item #1 (only `localGetClientConfig` is genuinely untested) |
 
 **Method note on the zeros (claim 12):** ast-grep returned `0` for every `local*Config` identifier inside `config_test.go`, and `grep -c` confirmed `0` — so the pattern was correct and the absence is real. The absence is just *not evidence of no test coverage*: it reflects that HTTP handlers are wired by route, not called by name. The actual coverage was found by matching the `LocalClient.<Op>` call shapes, which the local-mode socket routes to the `APILocal(...)` handlers (`api4/config_local.go:19-24`, client built at `api4/apitestlib.go:237`). This is the single substantive correction from the ast-grep pass.
+
+## Claim verification (ast-grep)
+
+**Scope.** This section verifies *only* the **structural claims the ranking rests on** — method counts, the "overrides X but not Y" pattern (the `updateConfig`/`patchConfig` guard divergence = the justification for C3 #1), call-site / fan-in cardinality, and mirror-type pairs (the C2 trace). Tool: `ast-grep v0.44.0`, target: nested `mattermost/` @ `ee04f28` (unchanged), verification commit (shaping-claude): `42ef2ac`. **Every ast-grep zero was confirmed with classic grep** (the "method" column). Claims grounded in **git co-change** (`config.go ↔ config.ts` 34×, `↔ admin_definition.tsx` 24×, etc.) are the `[git]` evidence class and **lie outside ast-grep's scope** — they were not re-verified here (a deliberate exclusion, not an omission; confirm with `git log` separately).
+
+Verdict legend: ✅ confirmed · 🔧 refined · ❌ refuted.
+
+### Method counts
+
+| Claim | Verdict | Evidence (file:line) | Method (pattern/rule) |
+|---|---|---|---|
+| `SetDefaults`/`IsValid`/`Clone`/`Sanitize` — **1×** each on `*Config` | ✅ confirmed (lines exact) | `model/config.go:4276` / `:4340` / `:4226` / `:5316` | `func ($R *Config) <name>(…) { $$$ }` (go) — 1 match each |
+| `makeFilterConfigByPermission` — **1×** | ✅ confirmed | `api4/config.go:408` | `func makeFilterConfigByPermission($$$) $$$ { $$$ }` (go) — 1 |
+| `BackingStore` — **8 methods** (Set/Load/GetFile/SetFile/HasFile/RemoveFile/String/Close) | ✅ confirmed | `config/store.go:42-68` | `type BackingStore interface { $$$ }` (go) → range 42-68, 8 signatures |
+| `BackingStore` — **3 implementers** (File/Database/Memory) | ✅ confirmed | `config/file.go:129`, `database.go:223`, `memory.go:72` | `func ($R $T) Load() ([]byte, error) { $$$ }` (go) — 3 |
+| `type Listener func(oldCfg, newCfg *model.Config)` — **1×** | ✅ confirmed | `config/emitter.go:14` | `type Listener func(oldCfg, newCfg *model.Config)` (go) — 1 |
+
+### "Overrides X but not Y" — the `updateConfig` vs `patchConfig` guard divergence (justification for C3 #1)
+
+| Claim | Verdict | Evidence (file:line) | Method (pattern/rule) |
+|---|---|---|---|
+| `updateConfig` re-applies 5 guard fields (EnableUploads, SignaturePublicKeyFiles, ImportSettings.Directory, MarketplaceURL, ComplianceSettings.Directory) | ✅ confirmed | `api4/config.go:155/160/163/167/174` | grep for guard fields in the `func updateConfig` body (`:120-251`, ast-grep span) |
+| **Key:** at `ee04f28` `patchConfig` **also** guards all 5 fields (the "missing SignaturePublicKeyFiles guard" divergence from MM-68976 is already *closed*) | ✅ confirmed + 🔧 refined | `api4/config.go:307/314/318/326/334` (SignaturePublicKeyFiles: `:314`) | grep for guard fields in the `func patchConfig` body (`:279-406`, ast-grep span) |
+| The two endpoints are separate full-vs-sparse handlers, each with **its own** hand-maintained guard list | ✅ confirmed | `updateConfig api4/config.go:120-251` · `patchConfig :279-406` | `func updateConfig($$$) { $$$ }` / `func patchConfig($$$) { $$$ }` (go) — no shared wrapper |
+
+**Refinement to C3 (to be decided at the planning stage).** C3's structural verdicts are **confirmed** — both "hand-maintained lists" exist and share the guard fields, and the *enforcement style* still differs (`update` = silent coercion, `patch` = 403-reject for EnableUploads/ImportSettings.Directory/MarketplaceURL). At the same time: **at the analyzed commit `ee04f28` there is no open gap in the code** — the specific MM-68976 defect (missing `SignaturePublicKeyFiles` guard in `patch`) was patched in `c45a675553` (2026-06-15, *before* `ee04f28`), which is **consistent** with the report (past-tense description, "open ~to 2026-06"). The current remaining delta = the enforcement-style difference **+** the missing parity test (N4). This is *not* a re-ranking — the "ongoing hazard" element (two hand-maintained lists) persists; only the urgency of the "shipped defect" argument shifts (historical, not open). **The ranking and the intentionality verdicts were left unchanged** — left to be decided at the planning stage.
+
+### Call-site / fan-in cardinality
+
+| Claim | Verdict | Evidence (file:line) | Method (pattern/rule) |
+|---|---|---|---|
+| `model.Config` fan-in — **file count (non-recursive)**: app 77 / api4 59 / config 18 / app·platform 16 / mmctl 11 / jobs 10 | ✅ confirmed (5/6 exact; mmctl grep=11) | direct dirs | `model.Config` (go), counted by immediate directory; mmctl grep cross-check = 11 |
+| `model.Config` fan-in — **reference count (recursive)**: app 772 / api4 1014 / config 247 / app·platform 95 / jobs 85 | ✅ confirmed | those dirs | `model.Config` (go), recursive reference count |
+| …the same metric for mmctl = **146** and path `cmd/mmctl/commands` | 🔧 refined → **133 (report: 146)**, path **`server/cmd/mmctl/commands`** | `server/cmd/mmctl/commands` (11 files) | `model.Config` (go) recursive; corrected path with `server/` prefix |
+| `admin_definition.tsx` — **92** imports (91 runtime + 1 `import type`) | ✅ confirmed | `admin_definition.tsx` (92 `^import` lines) | `import $$$ from $M` (tsx) = 92; grep `^import` = 92, `^import type` = 1 (pattern `import $$$ from '$_'` returned 0 → **grep cross-check 92**, a pattern artifact) |
+| `th.LocalClient.GetConfig` **3×** / `UpdateConfig` **8×** / `PatchConfig` **3×** / `MigrateConfig` **1×** | ✅ confirmed (lines exact) | `config_test.go` GetConfig `63,545,769` · UpdateConfig `216,222,250,256,331,337,552,774` · PatchConfig `770,1015,1022` · MigrateConfig `1063` | `th.LocalClient.<Op>($$$)` (go) |
+| `localGetClientConfig` — **0** test reach | ✅ confirmed (zero) | absent in `config_test.go` | `th.LocalClient.GetClientConfig/GetOldClientConfig($$$)` = 0 → **grep `LocalClient\.(GetClientConfig\|GetOldClientConfig)` exit 1 (none)** |
+| Handler identifiers (`localGetConfig`…`localGetClientConfig`) in `*_test.go` — **0** (reached via routing, not by name) | ✅ confirmed (zero) | `api4/*_test.go` | identifier (go) = 0 for each → **grep in `*_test.go` = 0 for each** |
+| C2 metadata tags: `access:` **581** + `restrictable` **306** | 🔧 refined (`access:` → **580 (report: 581)**) · ✅ `restrictable` **306** | `model/config.go` | grep `access:"[^"]*"` = 580; `restrictable` 306 = fields with the tag (write 277 + cloud 251 across 306 lines; raw "restrictable" = 528 is the wrong metric) |
+
+### Mirror-type pairs — the `EmailSettings.EnableEmailBatching` trace (C2 trace)
+
+| Representation | Verdict | Evidence (file:line) | Method |
+|---|---|---|---|
+| Go struct (tag `access:"site_notifications"`) | ✅ confirmed | `model/config.go:2157` | grep `EnableEmailBatching` |
+| TS full type | ✅ confirmed | `config.ts:631` | grep |
+| TS `ClientConfig` (stringified) | ✅ confirmed | `config.ts:74` | grep |
+| UI binding (dotted key, not type-linked) | 🔧 refined → **3303 (report: 3302)** | `admin_definition.tsx:3303` | grep |
+| webapp i18n (label/help) | ✅ confirmed | `webapp .../i18n/en.json:1166` | grep (key `admin.environment.notifications.enableEmailBatching.help`, not the raw field name) |
+| server i18n (`IsValid` error ids) | ✅ confirmed | `server/i18n/en.json:11550` + `:12102` | grep (`cluster_email_batching` / `site_url_email_batching`) |
+| `GenerateClientConfig` | ✅ confirmed | `config/client.go:71` | grep |
+| playwright snapshot | ✅ confirmed | `e2e-tests/playwright/lib/src/server/default_config.ts:369` | grep |
+| cypress snapshot | ✅ confirmed | `e2e-tests/cypress/tests/support/api/on_prem_default_config.json:255` | grep |
+| "one enforced link": `default_config.ts` imports the TS type | ✅ confirmed | `default_config.ts:5-15` (`import type {…} from '@mattermost/types/config'`) | grep for imports |
+
+**Method note on the zeros.** Three sets of zeros (`localGetClientConfig`, handler identifiers in tests, the tsx import pattern `import $$$ from '$_'`) were confirmed with classic grep. The first two are **genuine absence** (grep agrees with ast-grep). The third is a **pattern artifact** — the imports *do exist* (grep `^import` = 92), only the specific pattern shape failed; the correct pattern `import $$$ from $M` (tsx) yields 92. Distinguishing genuine absence from a bad pattern is a requirement of the method.
+
+**Tool split (deliberate decision).** ast-grep was used for **AST-shaped** claims — method/type/interface definitions, implementer signatures, the `updateConfig`/`patchConfig` function spans, `th.LocalClient.<Op>(…)` calls, and counting `model.Config` references/files. `grep` is the **first-choice tool** here for the presence of a literal identifier scattered across languages (Go/TS/JSON — the `EnableEmailBatching` mirror trace), for the presence of guard fields inside the handler bodies, and for **struct-tag content** (`access:` / `restrictable`), where ast-grep adds no precision (it is string-tag content, not a syntax node). For every ast-grep zero, grep remains the required cross-check (above).
 
 ## Evidence / Inference / Unknown (consolidated)
 
@@ -404,9 +464,9 @@ Every **structural** claim in this report (call-site / fan-in counts, "only here
 
 #### C2 — schema hand-mirrored across stacks `[candidate — strong, report-flagged]`
 
-- **Current shape (evidence):** Mirror set confirmed by tracing one field (`EmailSettings.EnableEmailBatching`) through 9 representations: Go struct (`config.go:2157`, with `access:` tag) → TS full type (`config.ts:631`) → **a second in-stack TS mirror**, the stringified `ClientConfig` (`config.ts:74`) → UI binding (`admin_definition.tsx:3302`, dotted-string key, not type-linked) → webapp i18n (`en.json:1166`) → server i18n validation ids (`en.json:11550/12102`) → `client.go:71` (`GenerateClientConfig`) → playwright `default_config.ts:369` → cypress `on_prem_default_config.json:255`. **The one existing structural link:** playwright `default_config.ts` *imports* the TS types and is compile-checked against them; every other pairing (Go↔TS, TS↔UI, ↔i18n, ↔client.go, ↔cypress-JSON) is hand-authored with **no enforced link**. `[evidence]`
+- **Current shape (evidence):** Mirror set confirmed by tracing one field (`EmailSettings.EnableEmailBatching`) through 9 representations: Go struct (`config.go:2157`, with `access:` tag) → TS full type (`config.ts:631`) → **a second in-stack TS mirror**, the stringified `ClientConfig` (`config.ts:74`) → UI binding (`admin_definition.tsx:3303` (report: 3302), dotted-string key, not type-linked) → webapp i18n (`en.json:1166`) → server i18n validation ids (`en.json:11550/12102`) → `client.go:71` (`GenerateClientConfig`) → playwright `default_config.ts:369` → cypress `on_prem_default_config.json:255`. **The one existing structural link:** playwright `default_config.ts` *imports* the TS types and is compile-checked against them; every other pairing (Go↔TS, TS↔UI, ↔i18n, ↔client.go, ↔cypress-JSON) is hand-authored with **no enforced link**. `[evidence]`
 - **Intentionality (evidence + honest unknown):** A generator *does* exist — `server/scripts/config_generator` (orig. MM-14400) — but it emits **`default.json` only**, one-directionally, Go struct → JSON. The **cross-language** mirror was never generated: no `go:generate` near `config.go`, no removed cross-lang generator, no "keep in sync" contributor doc; the PR template only asks contributors to *list* config changes. Exemplar `471fd8d1` (field-add) edits **7 mirror files by hand** in one commit. **Verdict: codegen applied only where cheap/single-source; cross-lang mirror is unbuilt-by-default, explicit "we chose not to" decision is `[unknown]` — record thin.** `[evidence]`
-- **Feasibility (evidence):** Target shape (named only, per hard limit): **struct-tag-driven schema source generating the TS/i18n/e2e mirrors** — largely a **tooling/build** change layered on existing metadata (581 `access:` + 306 `restrictable` tags already machine-readable). **No CI job enforces cross-stack parity today** — `config-change-checker.yml` is a *non-failing release-note generator*, not a drift guard; every other guard is single-stack. **First prerequisite: a fail-on-mismatch CI drift-check** across the mirrors (make drift *detectable and enforced*) **before** making any stack generated. Reversible per-stack if generated output stays committed/reviewable. `[evidence]`
+- **Feasibility (evidence):** Target shape (named only, per hard limit): **struct-tag-driven schema source generating the TS/i18n/e2e mirrors** — largely a **tooling/build** change layered on existing metadata (580 (report: 581) `access:` + 306 `restrictable` tags already machine-readable). **No CI job enforces cross-stack parity today** — `config-change-checker.yml` is a *non-failing release-note generator*, not a drift guard; every other guard is single-stack. **First prerequisite: a fail-on-mismatch CI drift-check** across the mirrors (make drift *detectable and enforced*) **before** making any stack generated. Reversible per-stack if generated output stays committed/reviewable. `[evidence]`
 
 #### C3 — `updateConfig`/`patchConfig` duplicate pipeline `[candidate — strong]`
 
