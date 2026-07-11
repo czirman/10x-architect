@@ -1,9 +1,9 @@
 {
   "package": "@przeprogramowani/10x-cli",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "manifestVersion": 3,
-  "lastApplied": "2026-06-27T09:54:46.642Z",
-  "lessonId": "m4l3",
+  "lastApplied": "2026-07-04T12:45:38.416Z",
+  "lessonId": "m4l4",
   "course": "10xdevs3",
   "tool": "claude-code",
   "files": {
@@ -37,12 +37,18 @@
     },
     "prompts": [
       "m4l3-1-research-with-map.md",
-      "m4l3-2-ast-grep-verification.md"
+      "m4l3-2-ast-grep-verification.md",
+      "m4l4-1-new-change-intention.md",
+      "m4l4-2-refactor-opportunities-research.md",
+      "m4l4-3-ranking-ast-grep-verification.md"
     ],
     "configs": [],
     "promptHashes": {
       "m4l3-1-research-with-map.md": "b21933bc50ad0de9ad32bf3908d6081bd33632ed4dfb2519747c1a4294b2cec4",
-      "m4l3-2-ast-grep-verification.md": "6d0c4cc38281f68a2bb728580c177499dc0d812988cb68ae84885080148d62b8"
+      "m4l3-2-ast-grep-verification.md": "6d0c4cc38281f68a2bb728580c177499dc0d812988cb68ae84885080148d62b8",
+      "m4l4-1-new-change-intention.md": "932b65e90f5f4c4ed289b14a457c9950ff59edd22e1a8a2baba5f6e8db3f20a0",
+      "m4l4-2-refactor-opportunities-research.md": "085635e4e677824f475daaadc2b6f7d1df2af6591bfd6fdfc0facbdefeee4413",
+      "m4l4-3-ranking-ast-grep-verification.md": "986364bd6fda83c28d746ef7bbd9f9383d6b9d26af84430cc6a28e89c74138c2"
     }
   },
   "lessons": {
@@ -75,6 +81,16 @@
       "prompts": [
         "m4l3-1-research-with-map.md",
         "m4l3-2-ast-grep-verification.md"
+      ],
+      "configs": []
+    },
+    "m4l4": {
+      "appliedAt": "2026-07-04T12:45:38.415Z",
+      "skills": {},
+      "prompts": [
+        "m4l4-1-new-change-intention.md",
+        "m4l4-2-refactor-opportunities-research.md",
+        "m4l4-3-ranking-ast-grep-verification.md"
       ],
       "configs": []
     }

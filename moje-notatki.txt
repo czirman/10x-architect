@@ -55,4 +55,7 @@ Day one, endpoint
   
   
   
-  https://www.youtube.com/watch?v=rqwgWyLA05k - imba o bandere
+  
+## Follow-up Research 2026-07-04 — Refactor opportunities - doprzeczytania
+
+claude --resume 5d093ee6-7630-4d54-b45b-7de5be74ba10
