@@ -2,4 +2,3 @@ mattermost/
 node_modules/
 package-lock.json
 package.json
-context-pl/

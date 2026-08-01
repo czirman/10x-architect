@@ -64,3 +64,7 @@ https://github.com/BroadleafCommerce/BroadleafCommerce
 https://github.com/BroadleafCommerce/DemoSite
 
 
+
+Wynik, pracy na zaliczenie. Piszą żeby upenić się że wnioski sa moje nie agenta. Nie wiem czy będę w stanie.
+Swoją drogą ciekawe czy i jak bedą w stanie to zweryfikować
+/home/czirman/workspace-10x/shaping-claude/context-pl/architecture-report.md
