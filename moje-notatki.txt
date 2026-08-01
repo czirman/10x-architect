@@ -58,4 +58,9 @@ Day one, endpoint
   
 ## Follow-up Research 2026-07-04 — Refactor opportunities - doprzeczytania
 
-claude --resume 5d093ee6-7630-4d54-b45b-7de5be74ba10
+Propozycja javowa modułu na architkekta
+. Broadleaf Commerce
+https://github.com/BroadleafCommerce/BroadleafCommerce
+https://github.com/BroadleafCommerce/DemoSite
+
+
