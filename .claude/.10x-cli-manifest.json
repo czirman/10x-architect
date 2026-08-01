@@ -1,9 +1,9 @@
 {
   "package": "@przeprogramowani/10x-cli",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "manifestVersion": 3,
-  "lastApplied": "2026-07-11T14:01:38.193Z",
-  "lessonId": "m4l5",
+  "lastApplied": "2026-08-01T13:57:18.640Z",
+  "lessonId": "m5l1",
   "course": "10xdevs3",
   "tool": "claude-code",
   "files": {
@@ -32,6 +32,22 @@
         ],
         "contentHashes": {
           "SKILL.md": "bf769705e818d876e2e318b33d3c2acd7b5cccd93064c21a0a3c82ad4a6332d7"
+        }
+      },
+      "10x-opportunity-map": {
+        "files": [
+          "SKILL.md"
+        ],
+        "contentHashes": {
+          "SKILL.md": "df8ddeb8377253b41b2de7812dedcf3fce8ddf3489e4ad52a7cc20e8b72f939f"
+        }
+      },
+      "10x-mom-test": {
+        "files": [
+          "SKILL.md"
+        ],
+        "contentHashes": {
+          "SKILL.md": "6b992b77c723413a9b805280cf83da0ca5b848742dca49129d34f59e241149e8"
         }
       }
     },
@@ -108,6 +124,23 @@
         "m4l5-2-invariant-aggregate-refactor.md",
         "m4l5-3-anti-corruption-layer.md"
       ],
+      "configs": []
+    },
+    "m5l1": {
+      "appliedAt": "2026-08-01T13:57:18.639Z",
+      "skills": {
+        "10x-opportunity-map": {
+          "files": [
+            "SKILL.md"
+          ]
+        },
+        "10x-mom-test": {
+          "files": [
+            "SKILL.md"
+          ]
+        }
+      },
+      "prompts": [],
       "configs": []
     }
   }
